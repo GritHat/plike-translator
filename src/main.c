@@ -22,7 +22,6 @@ static void print_usage(const char* program_name) {
     fprintf(stderr, "  -m, --mixed-arrays        Allow mixed array access ([] and ())\n");
     fprintf(stderr, "  -d, --debug=FLAGS         Set debug flags (lexer,parser,ast,symbols,codegen,all)\n");
     fprintf(stderr, "  -v, --verbose             Enable verbose output\n");
-    fprintf(stderr, "  -b, --bounds-check        Enable array bounds checking\n");
     fprintf(stderr, "  -h, --help                Display this help message\n");
 }
 
@@ -57,7 +56,6 @@ int main(int argc, char** argv) {
         {"mixed-arrays", no_argument, 0, 'm'},
         {"debug", required_argument, 0, 'd'},
         {"verbose", no_argument, 0, 'v'},
-        {"bounds-check", no_argument, 0, 'b'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };

@@ -104,7 +104,6 @@ bool config_parse_args(int argc, char** argv) {
         {"mixed-arrays", no_argument, 0, 'm'},
         {"debug", required_argument, 0, 'd'},
         {"verbose", no_argument, 0, 'v'},
-        {"bounds-check", no_argument, 0, 'b'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };

@@ -28,11 +28,11 @@ make debug
 # Basic usage
 ./plike input.p output.c
 
-# With array bounds checking enabled
-./plike --bounds-check input.p output.c
+# With mixed parameter declaration (parameter list and body)
+./plike --params=mixed input.p output.c
 
-# With verbose output
-./plike --verbose input.p output.c
+# With 1-indexed arrays
+./plike --indexing=one input.p output.c
 ```
 
 ## Language Features
