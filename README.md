@@ -89,6 +89,7 @@ var dynamic: array[n] of integer;
 <summary>Click to expand architecture diagrams</summary>
 
 ### AST Structure
+
 ```mermaid
 classDiagram
     class ASTNode {
@@ -158,6 +159,7 @@ classDiagram
 ```
 
 ### Component Interactions
+
 ```mermaid
 sequenceDiagram
     participant Main
@@ -204,6 +206,7 @@ sequenceDiagram
 ```
 
 ### Configuration Impact
+
 ```mermaid
 flowchart LR
     subgraph Configuration
@@ -246,6 +249,7 @@ flowchart LR
 ```
 
 ### Translator Architecture
+
 ```mermaid
 flowchart TB
     subgraph Input/Output
@@ -305,38 +309,31 @@ flowchart TB
         config[Config Manager]
     end
 
-    %% Input connections
     src --> lexer
     cfg --> config
 
-    %% Front end flow
     lexer --> tok_stream
     tok_stream --> tok_valid
     tok_valid --> parser
     
-    %% Parser connections
     parser --> ast
     parser <--> symtab
     
-    %% Symbol table organization
     symtab --> global
     symtab --> local
     symtab --> param
     
-    %% AST management
     ast --> decl
     ast --> stmt
     ast --> expr
     ast --> valid
 
-    %% Code generation flow
     valid --> codegen
     codegen --> preproc
     preproc --> trans
     trans --> opt
     opt --> out
 
-    %% Support system connections
     config --> lexer
     config --> parser
     config --> codegen
@@ -347,7 +344,6 @@ flowchart TB
     logger --> logs
     debug_sys --> debug
 
-    %% Debug/logging connections
     lexer -.-> logger
     parser -.-> logger
     codegen -.-> logger
@@ -361,6 +357,7 @@ flowchart TB
     style symtab fill:#bfb,stroke:#333,stroke-width:2px
     style ast fill:#fbf,stroke:#333,stroke-width:2px
 ```
+
 </details>
 
 ## Configuration Options
