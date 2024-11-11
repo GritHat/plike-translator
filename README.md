@@ -83,6 +83,11 @@ var dynamic: array[n] of integer;
 
 </details>
 
+## What's Missing
+
+Record and Type (structure, typedef) are still missing, as well as the verbose logging. Will come in future update.
+
+
 ## Architecture
 
 ### AST Structure
