@@ -384,7 +384,7 @@ The translator supports various configuration options that affect how the code i
 - Array indexing (0-based vs 1-based)
 - Parameter style (type declaration location)
 - Operator style (standard vs dotted logical operators)
-- Array bounds checking
+- Debug flags enabling (with graph generation if Graphviz is installed)
 - Mixed array access syntax (`[]` and `()`)
 
 ## Contributing
