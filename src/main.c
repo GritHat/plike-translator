@@ -59,6 +59,11 @@ int main(int argc, char** argv) {
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };
+    
+    // Initialize debug system with default flags
+    debug_init();
+
+    debug_set_flags(DEBUG_ALL);
 
     // Parse command line arguments
     if (!config_parse_args(argc, argv)) {
@@ -66,10 +71,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Initialize debug system with default flags
-    debug_init();
-
-    debug_set_flags(DEBUG_ALL);
     // Initialize logger
     logger_init(g_config.enable_verbose);
 

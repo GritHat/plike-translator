@@ -1,5 +1,7 @@
 #include "config.h"
 #include "errors.h"
+#include "debug.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,6 +97,30 @@ static bool parse_operator_style(const char* style) {
     return true;
 }
 
+static bool parse_debug_flags(const char* style) {
+    char* flags_copy = strdup(style);
+    char* token = strtok(flags_copy, ",");
+    DebugFlags debug_flags = 0;
+    debug_set_flags(debug_flags);
+    
+    while (token) {
+        if (strcasecmp(token, "lexer") == 0) debug_flags |= DEBUG_LEXER;
+        else if (strcasecmp(token, "parser") == 0) debug_flags |= DEBUG_PARSER;
+        else if (strcasecmp(token, "ast") == 0) debug_flags |= DEBUG_AST;
+        else if (strcasecmp(token, "symbols") == 0) debug_flags |= DEBUG_SYMBOLS;
+        else if (strcasecmp(token, "codegen") == 0) debug_flags |= DEBUG_CODEGEN;
+        else if (strcasecmp(token, "all") == 0) debug_flags |= DEBUG_ALL;
+        else {
+            fprintf(stderr, "Invalid debug flag: %s\n", token);
+            free(flags_copy);
+            return false;
+        }
+        token = strtok(NULL, ",");
+    }
+    free(flags_copy);
+    debug_set_flags(debug_flags);
+}
+
 bool config_parse_args(int argc, char** argv) {
      static struct option long_options[] = {
         {"assignment", required_argument, 0, 'a'},
@@ -137,6 +163,13 @@ bool config_parse_args(int argc, char** argv) {
             case 'o':
                 if (!parse_operator_style(optarg)) {
                     fprintf(stderr, "Invalid operator style: %s\n", optarg);
+                    return false;
+                }
+                break;
+
+            case 'd':
+                if (!parse_debug_flags(optarg)) {
+                    fprintf(stderr, "Invalid debug flag style: %s\n", optarg);
                     return false;
                 }
                 break;
