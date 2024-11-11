@@ -526,7 +526,7 @@ Token* lexer_next_token(Lexer* lexer) {
     }
 
     char c = advance(lexer);
-
+    //printf("next c %c\n", c);
     if (c == '"') {
         return scan_string(lexer);
     }
@@ -561,7 +561,6 @@ Token* lexer_next_token(Lexer* lexer) {
 
     // Identifiers
     if (is_alpha(c)) {
-
         size_t word_start = lexer->start;
         while (is_alpha(peek(lexer)) || is_digit(peek(lexer))) {
             advance(lexer);

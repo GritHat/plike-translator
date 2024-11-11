@@ -162,6 +162,7 @@ Parser* parser_create(Lexer* lexer) {
 
     verbose_print("Initializing parser context...\n");
     parser->ctx.lexer = lexer;
+    parser->ctx.prev = NULL;
     parser->ctx.current = NULL;
     parser->ctx.peek = NULL;
     verbose_print("Creating symbol table...\n");
@@ -189,6 +190,7 @@ Parser* parser_create(Lexer* lexer) {
 
 void parser_destroy(Parser* parser) {
     if (parser) {
+        token_destroy(parser->ctx.prev);
         token_destroy(parser->ctx.current);
         token_destroy(parser->ctx.peek);
         symtable_destroy(parser->ctx.symbols);
@@ -199,7 +201,7 @@ void parser_destroy(Parser* parser) {
 
 // Token handling functions
 static void advance(Parser* parser) {
-    token_destroy(parser->ctx.current);
+    token_destroy(parser->ctx.prev);
     parser->ctx.prev = parser->ctx.current;
     parser->ctx.current = parser->ctx.peek;
     parser->ctx.peek = lexer_next_token(parser->ctx.lexer);
@@ -559,6 +561,7 @@ static ASTNode* parse_declaration(Parser* parser) {
         return parse_procedure_declaration(parser);
     }
     if (match(parser, TOK_VAR)) {
+        match(parser, TOK_COLON);
         verbose_print("Parsing variable declaration\n");
         return parse_variable_declaration(parser);
     }
@@ -1367,15 +1370,14 @@ static ASTNode* parse_variable_declaration(Parser* parser) {
     verbose_print("Parsing variable declaration\n");
     ASTNode* param_decl = ast_create_node(NODE_BLOCK);
     int param_decl_count = 0;
-
     ASTNode* declarations = ast_create_node(NODE_BLOCK);
     if (!declarations) return NULL;
     ast_set_location(declarations, parser->ctx.current->loc);
 
     if (check(parser, TOK_VAR)) {
         advance(parser);
+        match(parser, TOK_COLON);
     }
-
     do {
         int pointer_level = 0;
         
@@ -3717,7 +3719,6 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
         return NULL;
     }
 
-
     // Check for buffer overflow
     if (type_len + strlen(base_type) >= sizeof(type_str) - 1) {
         parser_error(parser, "Type string too long");
@@ -3729,11 +3730,10 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
     strcat(type_str, base_type);
     // Store complete type string and dimensions
     type->data.value = strdup(type_str);
-
-    while (match(parser, TOK_MULTIPLY)) {
+    while (match(parser, TOK_MULTIPLY) || match(parser, TOK_DEREF)) {
         *pointer_level += 1;
     }
-
+    
     if (dimensions)
         type->array_bounds.dimensions = dimensions;
 

@@ -208,24 +208,6 @@ void ast_set_location(ASTNode* node, SourceLocation loc) {
     node->loc = loc;
 }
 
-// Debug printing functions
-/*void ast_print(ASTNode* node, int indent) {
-    if (!node) return;
-
-    indent_print(indent);
-    printf("%s\n", ast_node_type_to_string(node));
-
-    for (int i = 0; i < node->child_count; i++) {
-        ast_print(node->children[i], indent + 2);
-    }
-}
-
-static void indent_print(int level) {
-    for (int i = 0; i < level; i++) {
-        printf(" ");
-    }
-}*/
-
 const char* ast_node_type_to_string(ASTNode* node) {
     static char buffer[256];
     

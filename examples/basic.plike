@@ -1,256 +1,27 @@
-function somma_pari_e_dispari_in_riga(in: n: integer; in A[n][n] : array of integer)  : logical
-    var i, j, pari, dispari : integer
+procedure appartiene(A, i, j, elem, n, out: trovato)
+    var i, j, elem, n : integer
+    var A[1..n][1..n]: array of integer
+    var: trovato : logical
+    var: a : integer **
     begin
-        somma_pari_e_dispari_in_riga := FALSE
-        while i <= n and not somma_pari_e_dispari_in_riga do
-            pari := 0
-            dispari := 0
-            for j := 1 to n/2 do
-                pari := pari + A[i,j*2]
-                dispari := dispari + A[i,j*2-1]
-            endfor
-            if pari == dispari then
-                somma_pari_e_dispari_in_riga := TRUE
+        if(A(i,j) = elem) then
+            trovato := .TRUE.
+        else 
+            if (A(i,j) < elem) then
+                if i < N then 
+                    appartiene (A, i+1, j, elem,n, trovato)
+                else
+                    trovato := .FALSE.
+                endif
+            else 
+                if j > 1 then
+                    appartiene(A, i, j+1, elem,n,trovato)
+                else
+                    trovato := .FALSE.
+                endif
             endif
-            i := i + 1
-        endwhile
-    end
-end somma_pari_e_dispari_in_riga
-
-procedure BubbleSort (in: n; in/out: A)
-    var i, j, n : integer
-    var A : array [1..n] of real
-    var temp : real
-    var ordinato: logical
-    begin
-        ordinato:= FALSE
-        i:= 1
-        while (i<n) AND (NOT ordinato) do
-            ordinato:= TRUE
-            for j:= 1 to n-i do
-                if A(j)>A(j+1) then
-                    temp := A(j)
-                    A(j) := A(j+1)
-                    A(j+1) := temp
-                    ordinato:= FALSE
-                endif
-            endfor
-            i:=i+1
-        endwhile
-    end
-end BubbleSort
-
-procedure InsertionSort(in n: integer, in/out arr[n]: array of integer)
-    var i, j, key : integer
-    begin
-    for i := 1 to n - 1 do
-        key := arr[i]
-        j := i - 1
-
-        while j >= 0 && arr[j] > key do
-            arr[j + 1] := arr[j]
-            j := j - 1
-        endwhile
-
-        arr[j + 1] := key
-        i := 0xFF34
-        i := 0o3436
-        i := 0b0101010001
-        i := 034243
-    endfor
-    end
-endprocedure
-
-procedure SelectionSort2 (in: n; in/out: A)
-    var i, j, n, p : integer
-    var A : array [1..n] of real
-    var min, temp: real
-    begin
-        for i:= 1 to n-1 do
-            min:=A(i)
-            p:=i
-            for j:= i+1 to n do
-                if (A(j)<min)then
-                    min:=A(j)
-                    p:=j
-                endif
-            endfor
-            temp := A(i)
-            A(i) := A(p)
-            A(p) := temp
-        endfor
-    end
-end SelectionSort2
-
-procedure MergeSort(in/out arr[]: array of integer, in l: integer, in r: integer)
-    var m : integer
-        begin
-        if l < r then
-            m := (l + r) / 2
-            MergeSort(arr, l, m)
-            MergeSort(arr, m + 1, r)
-            Merge(arr, l, m, r)
         endif
     end
-endprocedure
+end appartiene
 
-procedure Merge(in/out arr[]: array of integer, in l: integer, in m: integer, in r: integer)
-    var n1, n2, i, j, k : integer
-    var L[m - l + 1], R[r - m] : array of integer
-    begin
-        n1 := m - l + 1
-        n2 := r - m
-        
-        for i := 0 to n1 - 1 do
-            L[i] := arr[l + i]
-        endfor
-        for j := 0 to n2 - 1 do
-            R[j] := arr[m + 1 + j]
-        endfor
-        
-        i := 0
-        j := 0
-        k := l
-        
-        while i < n1 && j < n2 do
-            if L[i] <= R[j] then
-                arr[k] := L[i]
-                i := i + 1
-            else
-                arr[k] := R[j]
-                j := j + 1
-            endif
-            k := k + 1
-        endwhile
-        
-        while i < n1 do
-            arr[k] := L[i]
-            i := i + 1
-            k := k + 1
-        endwhile
-        
-        while j < n2 do
-            arr[k] := R[j]
-            j := j + 1
-            k := k + 1
-        endwhile
-    end
-endprocedure
-
-function ScalarProductVdotV (in: x,y,n) : real
-    var i, n: integer
-    var x,y : array [1..n] of real
-    begin
-        ScalarProductVdotV := 0.0
-        for i:= 1 to n do
-            ScalarProductVdotV := ScalarProductVdotV +x(i)*y(i)
-        endfor
-    end
-end ScalarProductVdotV
-
-procedure saxpy (in: a,x,n; in/out: y)
-    var i, n : integer
-    var a : real
-    var x,y : array [1..n] of real
-    begin
-        for i:= 1 to n do
-            y(i) := y(i) +ax(i)
-        endfor
-    end
-end saxpy
-
-procedure MatrixSum (in:m,n,A,B; out:C)
-    var m,n,i,j : integer
-    var A,B,C : array [1..m, 1..n] of real
-    begin
-        for i := 1 to m do
-            for j := 1 to n do
-                C(i,j) := A(i,j) + B(i,j)
-            endfor
-        endfor
-    end
-end MatrixSum
-
-procedure ScalarProductMdotV (in:m,n,A,y; out:z)
-    var m,n,i,j : integer
-    var A : array [1..m, 1..n] of real
-    var y: array [1..n] of real
-    var z: array [1..m] of real
-    begin
-        for i := 1 to m do
-            z(i) := 0
-            for j := 1 to n do
-                z(i) := z(i) + A(i,j) * y(j)
-            endfor
-        endfor
-    end
-end ScalarProductMdotV
-
-
-procedure ScalarProductMdotM (in:m,n,p,A,B; out:C)
-    var m,n,p,i,j,k : integer; var A : array [1..m, 1..n] of real;
-    var B: array [1..n, 1..p] of real; var C: array [1..m, 1..p] of real ;
-    begin
-        for i := 1 to m do
-            for j := 1 to p do
-                C(i,j) := 0.
-                for k:= 1 to n do
-                    C(i,j) := C(i,j) + A(i,k)*B(k,j)
-                endfor
-            endfor
-        endfor
-    end
-end ScalarProductMdotM
-
-procedure SelectionSort(in n, in/out arr[n]: array of integer)
-    var i, j, minIndex, n, temp : integer
-    begin
-    for i := 0 to n - 2 do
-        minIndex := i
-        for j := i + 1 to n - 1 do
-            if arr[j] < arr[minIndex] then
-                minIndex := j
-            endif
-        endfor
-
-        if minIndex != i then
-            temp := arr[i]
-            arr[i] := arr[minIndex]
-            arr[minIndex] := temp
-        endif
-    endfor
-    end
-endprocedure
-
-logical function OddAndEvenSum(A,N)
-    var N, sum_pari, sum_dispari, i, j : integer
-    var A[N] : array of integer
-    var continua : logical
-    begin
-        i:=1 ; j:=1
-        continua:= .TRUE.
-        while (i<=N .AND. continua)do
-            sum_pari:=0 ; sum_dispari:=0
-            for j:=1 to N-1 step 2 do
-                sum_dispari:=sum_dispari+A(i,j)
-                sum_pari:=sum_pari+A(i,j+1)
-            endfor
-            if (sum_pari != sum_dispari) then
-                continua:= .FALSE.
-                endif
-            i:=i+1
-        endwhile
-        OddAndEvenSum:= continua
-        foo()
-    end
-endfunction
-
-function pow(in x:real, in n: integer) : real
-    begin
-        if n == 0 then
-            pow := 1
-        else
-            pow := x * pow(x, n-1)
-        endif
-    end
-end pow
+// fix type multipointer
