@@ -243,10 +243,7 @@ flowchart LR
     
     mixed -->|Array Access| parse
     mixed -->|Code Generation| code
-```
 
-### Translator Architecture
-```mermaid
 flowchart TB
     subgraph Input/Output
         src[Source Code]
