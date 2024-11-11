@@ -85,10 +85,9 @@ var dynamic: array[n] of integer;
 
 ## Architecture
 
-<details>
-<summary>Click to expand architecture diagrams</summary>
-
 ### AST Structure
+<details>
+<summary>Click to see AST diagram</summary>
 
 ```mermaid
 classDiagram
@@ -158,7 +157,11 @@ classDiagram
     Scope --o Symbol
 ```
 
+</details>
+
 ### Component Interactions
+<details>
+<summary>Click to see component interaction diagram</summary>
 
 ```mermaid
 sequenceDiagram
@@ -205,7 +208,11 @@ sequenceDiagram
     Main->>Debug: Cleanup
 ```
 
+</details>
+
 ### Configuration Impact
+<details>
+<summary>Click to see configuration impact diagram</summary>
 
 ```mermaid
 flowchart LR
@@ -248,7 +255,11 @@ flowchart LR
     mixed -->|Code Generation| code
 ```
 
+</details>
+
 ### Translator Architecture
+<details>
+<summary>Click to see translator architecture diagram</summary>
 
 ```mermaid
 flowchart TB
