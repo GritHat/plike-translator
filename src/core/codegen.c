@@ -1297,12 +1297,17 @@ void codegen_generate(CodeGenerator* gen, ASTNode* node) {
             break;
 
         case NODE_ARRAY_ACCESS:
-            if (node->children[0] && node->children[0]->data.variable.name) {
-                debug_codegen_array(gen, node->children[0], "array access");
-                fprintf(gen->output, "%s", node->children[0]->data.variable.name);
+            ASTNode* root = node;
+            while (root->children[0]) {
+                root = root->children[0];
+            }
+            if (root->children[0] && root->children[0]->data.variable.name) {
+                debug_codegen_array(gen, root->children[0], "array access");
+                fprintf(gen->output, "%s", root->children[0]->data.variable.name);
                 fprintf(gen->output, "[");
+
                 if (node->children[1]) {
-                    codegen_generate(gen, node->children[1]);
+                    codegen_generate(gen, root->children[1]);
                 }
                 fprintf(gen->output, "]");
             }

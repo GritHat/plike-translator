@@ -598,12 +598,18 @@ Token* lexer_next_token(Lexer* lexer) {
     }
 
     if (c == '=') {
-        if (g_config.assignment_style == ASSIGNMENT_EQUALS) {
-            token = make_token(lexer, TOK_ASSIGN);
-            goto scanned;
-        } else {
+        if (peek(lexer) == '=') {
+            advance(lexer);
             token = make_token(lexer, TOK_EQ);
             goto scanned;
+        } else {
+            if (g_config.assignment_style == ASSIGNMENT_EQUALS) {
+                token = make_token(lexer, TOK_ASSIGN);
+                goto scanned;
+            } else {
+                token = make_token(lexer, TOK_EQ);
+                goto scanned;
+            }
         }
     }
 

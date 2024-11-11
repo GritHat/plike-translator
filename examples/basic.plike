@@ -1,3 +1,22 @@
+function somma_pari_e_dispari_in_riga(in: n: integer; in A[n][n] : array of integer)  : logical
+    var i, j, pari, dispari : integer
+    begin
+        somma_pari_e_dispari_in_riga := FALSE
+        while i <= n and not somma_pari_e_dispari_in_riga do
+            pari := 0
+            dispari := 0
+            for j := 1 to n/2 do
+                pari := pari + A[i,j*2]
+                dispari := dispari + A[i,j*2-1]
+            endfor
+            if pari == dispari then
+                somma_pari_e_dispari_in_riga := TRUE
+            endif
+            i := i + 1
+        endwhile
+    end
+end somma_pari_e_dispari_in_riga
+
 procedure BubbleSort (in: n; in/out: A)
     var i, j, n : integer
     var A : array [1..n] of real
@@ -225,3 +244,13 @@ logical function OddAndEvenSum(A,N)
         foo()
     end
 endfunction
+
+function pow(in x:real, in n: integer) : real
+    begin
+        if n == 0 then
+            pow := 1
+        else
+            pow := x * pow(x, n-1)
+        endif
+    end
+end pow

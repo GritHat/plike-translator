@@ -1249,15 +1249,19 @@ static int count_comma_array_dimensions_ahead(Lexer* lexer, size_t var_start, bo
         end_pos++;
     }
     
-    int dimensions = 1;
+    int dimensions = 0;
     int nesting = 0;
     pos = start_pos;
     
     while (pos < end_pos && source[pos]) {
         char c = source[pos];
         
-        if (c == ',')
-            dimensions++;
+        if (c == ',') {
+            if (dimensions)
+                dimensions++;
+            else 
+                dimensions = 2;
+        }
         pos++;
     }
     return dimensions;
@@ -3500,7 +3504,6 @@ static ASTNode* parse_array_access(Parser* parser, ASTNode* array) {
         return NULL;
     }
     verbose_print("Initial array node type: %d\n", array->type);
-
     ASTNode* current = array;
     
     while ((check(parser, TOK_LBRACKET) || 
@@ -3582,7 +3585,6 @@ static ASTNode* parse_array_access(Parser* parser, ASTNode* array) {
         verbose_print("Successfully created array access with %d dimensions\n", 
                access->data.array_access.dimensions);
     }
-
     verbose_print("Exiting parse_array_access, returning node type: %d\n", current->type);
     return current;
 }
@@ -3794,8 +3796,11 @@ static ASTNode* parse_parameter(Parser* parser) {
         advance(parser);  // Consume the * token
     }
 
+
     size_t var_start = parser->ctx.lexer->start;
+
     Token* name = consume(parser, TOK_IDENTIFIER, "Expected parameter name");
+
     if (!name) {
         ast_destroy_node(param);
         return NULL;
@@ -3805,13 +3810,12 @@ static ASTNode* parse_parameter(Parser* parser) {
     ArrayBoundsData* bounds = NULL;
     int total_dimensions = 0;
     bool has_brackets = false;
-    
     // Parse array bounds that appear after the parameter name
     if (match(parser, TOK_LBRACKET)) {
         has_brackets = true;
         // Check if we have comma-separated dimensions like [n,m]
-        
         if (parser->ctx.peek->type == TOK_COMMA || count_comma_array_dimensions_ahead(parser->ctx.lexer, var_start, false)) {  //TODO do the same for LBRACKET and for type LBRACKET and for for var decl
+            
             int dimension_count = 1;
             TokenType lookahead_type = parser->ctx.peek->type;
             dimension_count = count_comma_array_dimensions_ahead(parser->ctx.lexer, var_start, false);
@@ -3848,6 +3852,7 @@ static ASTNode* parse_parameter(Parser* parser) {
             
         } else {
             // Single dimension bounds like [n] or [1..n]
+
             total_dimensions = count_array_dimensions_ahead(parser->ctx.lexer, var_start, false);
             if (total_dimensions <= 0) {
                 ast_destroy_node(param);

@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
-#define verbose_print(f_, ...) //if (g_config.enable_verbose) printf((f_), ##__VA_ARGS__)
+#define verbose_print(f_, ...) if (g_config.enable_verbose) printf((f_), ##__VA_ARGS__)
 
 #define ERR_ARRAY_BOUNDS "Array index out of bounds"
 #define ERR_INVALID_ARRAY "Invalid array access"
