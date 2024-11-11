@@ -53,8 +53,6 @@ dkms.conf
 
 # User defined
 obj/*
-logs/*
-visualize/*
 bin/*
 .vscode/*
 
