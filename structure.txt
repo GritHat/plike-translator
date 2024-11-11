@@ -1,0 +1,38 @@
+src/
+  ├── include/             # Public header files
+  │   ├── config.h         # Configuration definitions
+  │   ├── lexer.h          # Lexical analyzer interface
+  │   ├── parser.h         # Parser interface
+  │   ├── ast.h            # AST definitions
+  │   ├── symtable.h       # Symbol table interface
+  │   ├── codegen.h        # Code generation interface
+  │   ├── logger.h         # Logging interface
+  │   └── errors.h         # Error handling
+  │
+  ├── core/                # Core implementation files
+  │   ├── lexer.c          # Lexical analyzer implementation
+  │   ├── parser.c         # Parser implementation
+  │   ├── ast.c            # AST operations
+  │   ├── symtable.c       # Symbol table implementation
+  │   ├── codegen.c        # Code generation implementation
+  │   ├── logger.c         # Logging system implementation
+  │   └── errors.c         # Error handling implementation
+  │
+  ├── util/                # Utility functions
+  │   └── utils.c          # Utility functions implementation
+  |  
+  ├── docs/               # Documentation
+  │   ├── doc.md          # Detailed documentation
+  │   └── diagrams/       # Architectural diagrams
+  │       ├── ast-structure.md
+  │       ├── component-interactions.md
+  │       ├── config-impact.md
+  │       └── translator-architecture.md
+  |
+  ├── examples/           # Example code files
+  ├── tests/              # Test files
+  │
+  ├── main.c              # Main entry point
+  ├── Makefile            # Build system
+  ├── README.md           # Project overview
+  └── LICENSE             # Project license
