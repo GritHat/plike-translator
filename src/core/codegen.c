@@ -174,7 +174,13 @@ static void generate_type(CodeGenerator* gen, const char* type) {
     } else {
         RecordTypeData* type_sym = symtable_lookup_type(gen->symbols, type_ptr);
         if (type_sym) {
-            fprintf(gen->output, "%s", type_ptr);
+            // For typedef'd types, just use the name
+            if (type_sym->is_typedef) {
+                fprintf(gen->output, "%s", type_ptr);
+            } else {
+                // For non-typedef'd records, need to use struct prefix
+                fprintf(gen->output, "struct %s", type_ptr);
+            }
         } else {
             // If not found, just output the type name (error would have been caught during parsing)
             fprintf(gen->output, "%s", type_ptr);

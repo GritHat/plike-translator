@@ -18,7 +18,7 @@ var complex2 : 2d array of record
     end
 end
 
-function foo() : complex
+function foo() : complex2
     begin
         do_something()
     end

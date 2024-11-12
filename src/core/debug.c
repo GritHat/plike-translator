@@ -147,6 +147,12 @@ const char* ast_node_type_to_string_detailed(NodeType type) {
             return "Read Statement";
         case NODE_TYPE:
             return "Type Specifier";
+        case NODE_RECORD_TYPE:
+            return "Record Type";
+        case NODE_TYPE_DECLARATION:
+            return "Type Declaration";
+        case NODE_RECORD_FIELD:
+            return "Record Field";
         default:
             return "Unknown Node Type";
     }
