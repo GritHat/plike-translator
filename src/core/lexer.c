@@ -583,10 +583,7 @@ static Token* scan_number(Lexer* lexer) {
 }
 
 // Add string literal support in lexer.c
-static Token* scan_string(Lexer* lexer) {
-    // Skip the opening quote
-    advance(lexer);
-    
+static Token* scan_string(Lexer* lexer) {    
     lexer->start = lexer->current;
     while (peek(lexer) != '"' && !is_at_end(lexer)) {
         if (peek(lexer) == '\n') {
@@ -610,7 +607,7 @@ static Token* scan_string(Lexer* lexer) {
     
     // Skip the closing quote
     advance(lexer);
-    
+    printf("token created succesfully (%s)\n", token->value);
     return token;
 }
 
@@ -636,6 +633,7 @@ Token* lexer_next_token(Lexer* lexer) {
     char c = advance(lexer);
     //printf("next c %c\n", c);
     if (c == '"') {
+        printf("scanning string\n");
         return scan_string(lexer);
     }
 

@@ -204,6 +204,7 @@ end ScalarProductMdotM
 
 procedure SelectionSort(in n, in/out arr[n]: array of integer)
     var i, j, minIndex, n, temp : integer
+    var 
     begin
     for i := 0 to n - 2 do
         minIndex := i

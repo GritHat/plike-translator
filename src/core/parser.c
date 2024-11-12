@@ -572,7 +572,6 @@ static ASTNode* parse_declaration(Parser* parser) {
     if (match(parser, TOK_TYPE)) {
         match(parser, TOK_COLON);
         verbose_print("Parsing type declaration\n");
-        printf("Parsing type declaration\n");
         return parse_type_declaration(parser);
     }
 
@@ -1787,9 +1786,6 @@ static ASTNode* parse_variable_declaration(Parser* parser) {
                 var_node->data.variable.array_info.dimensions = num_dimensions;
             }
         }
-
-
-        printf("parsing record variable %d\n", num_dimensions);
         ASTNode* record_type = parse_record_type(parser, false);
         if (!record_type) {
             ast_destroy_node(declarations);
@@ -1810,8 +1806,6 @@ static ASTNode* parse_variable_declaration(Parser* parser) {
             ast_destroy_node(declarations);
             return NULL;
         }
-
-        printf("parsing record variable completed\n");
         return declarations;
     }
 
@@ -3546,6 +3540,19 @@ static ASTNode* parse_primary(Parser* parser) {
 
         return node;
     }
+    if (check(parser, TOK_STRING_LITERAL)) {
+        Token* string_token = consume(parser, parser->ctx.current->type, "Expected boolean value");
+        if (!string_token) return NULL;
+        SourceLocation string_loc = token_clone_location(string_token);
+
+        ASTNode* node = ast_create_node(NODE_STRING);
+        if (!node) return NULL;
+        ast_set_location(node, string_loc);
+
+        // Store standardized value
+        node->data.value = strdup(string_token->value);
+        return node;
+    }
 
     if (match(parser, TOK_LPAREN)) {
         ASTNode* expr = parse_expression(parser);
@@ -3772,17 +3779,13 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
     } else if (match(parser, TOK_CHARACTER)) {
         base_type = "character";
     } else {
-        printf("looking for type %s in global scope\n", parser->ctx.current->value);
         const char* type_name = parser->ctx.current->value;
         RecordTypeData* type_sym = symtable_lookup_type(parser->ctx.symbols, type_name);
-        printf("ptr %d\n", type_sym);
         if (type_sym) {
-            printf("found type in global scope\n");
             verbose_print("Found user-defined type: %s\n", type_name);
             base_type = type_name;
             advance(parser); // Consume the type name
         } else {
-            printf("type not found\n");
             ast_destroy_node(type);
             return NULL;
         }
@@ -4253,7 +4256,6 @@ static ASTNode* parse_parameter(Parser* parser) {
 }
 
 static ASTNode* parse_record_type(Parser* parser, bool is_typedef) {
-    printf("parsing record type\n");
     ASTNode* record = ast_create_node(NODE_RECORD_TYPE);
     if (!record) return NULL;
 
@@ -4311,9 +4313,6 @@ static ASTNode* parse_record_field(Parser* parser) {
     if (!field) return NULL;
 
     field->data.variable.name = strdup(name->value);
-
-    printf("parsing nested %s\n", name->value);
-
     // Check if field is a nested record
     if (match(parser, TOK_RECORD)) {
         ASTNode* nested_record = parse_record_type(parser, false);

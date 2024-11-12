@@ -499,8 +499,6 @@ static void generate_variable_declaration(CodeGenerator* gen, ASTNode* node) {
 
         ArrayBoundsData* bounds = node->data.variable.array_info.bounds;
         if (bounds) {
-            printf("Processing array with %d dimensions\n", bounds->dimensions);
-            
             for (int dim = 0; dim < bounds->dimensions; dim++) {
                 fprintf(gen->output, "[");
                 
@@ -1280,6 +1278,11 @@ static void generate_repeat_statement(CodeGenerator* gen, ASTNode* node) {
     fprintf(gen->output, "));\n");
 }
 
+static void generate_string(CodeGenerator* gen, ASTNode* node) {
+    fprintf(gen->output, "\"");
+    fprintf(gen->output, node->data.value);
+    fprintf(gen->output, "\"");
+}
 
 static void generate_for_statement(CodeGenerator* gen, ASTNode* node) {
     verbose_print("Generating for statement\n");
@@ -1546,7 +1549,9 @@ void codegen_generate(CodeGenerator* gen, ASTNode* node) {
         case NODE_TYPE_DECLARATION:
             generate_record_type(gen, node->children[0]);
             break;
-
+        case NODE_STRING:
+            generate_string(gen, node);
+            break;
         default:
             error_report(ERROR_INTERNAL, SEVERITY_ERROR,
                         node->loc,
