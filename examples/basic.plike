@@ -1,8 +1,34 @@
-procedure appartiene(A, i, j, elem, n, out: trovato)
+var global : integer
+
+type complex : record
+    value : record
+        real_p : real
+        imag_p : real
+    end
+end
+
+var complex2 : 2d array of record
+    value : record
+        real_p : real
+        imag_p : real
+        valueinner : record
+            real_p : real
+            imag_p : real
+        end
+    end
+end
+
+function foo() : complex
+    begin
+        do_something()
+    end
+end foo
+
+procedure appartiene(A, i, j, elem, n, out: trovato, test : complex)
     var i, j, elem, n : integer
     var A[1..n][1..n]: array of integer
     var: trovato : logical
-    var: a : integer **
+    var: a : integer**
     begin
         if(A(i,j) = elem) then
             trovato := .TRUE.

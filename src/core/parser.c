@@ -47,6 +47,10 @@ static ASTNode* parse_primary(Parser* parser);
 static ASTNode* parse_array_access(Parser* parser, ASTNode* array);
 static bool parse_dimension_bounds(Parser* parser, DimensionBounds* bounds);
 static int parse_array_dimension(Parser* parser);
+static ASTNode* parse_record_type(Parser* parser, bool is_typedef);
+static ASTNode* parse_record_field(Parser* parser);
+static ASTNode* parse_type_declaration(Parser* parser);
+static ASTNode* parse_field_access(Parser* parser, ASTNode* record);
 
 static Token* consume_token_with_trace(Parser* parser, const char* context) {
     verbose_print("\n=== CONSUMING TOKEN AT %s ===\n", context);
@@ -565,6 +569,13 @@ static ASTNode* parse_declaration(Parser* parser) {
         verbose_print("Parsing variable declaration\n");
         return parse_variable_declaration(parser);
     }
+    if (match(parser, TOK_TYPE)) {
+        match(parser, TOK_COLON);
+        verbose_print("Parsing type declaration\n");
+        printf("Parsing type declaration\n");
+        return parse_type_declaration(parser);
+    }
+
 
     parser_error(parser, "Expected declaration");
     return NULL;
@@ -1756,6 +1767,53 @@ static ASTNode* parse_variable_declaration(Parser* parser) {
     }
 
     // Parse base type
+
+    // TODO FIX THIS MESS
+    if (match(parser, TOK_RECORD)) {
+        ASTNode* var_node = declarations->children[0];
+        int num_dimensions = 0;
+        if (is_array || var_node->data.variable.is_array) {
+            var_node->type = NODE_ARRAY_DECL;
+            if (var_node->data.variable.is_array) {
+                num_dimensions = var_node->data.variable.array_info.dimensions;
+            } else if (type_dimensions > 0) {
+                num_dimensions = type_dimensions;
+                var_node->data.variable.array_info.dimensions = num_dimensions;
+            } else if (type_bounds) {
+                num_dimensions = type_bounds->dimensions;
+                var_node->data.variable.array_info.dimensions = num_dimensions;
+            } else {
+                num_dimensions = 1;
+                var_node->data.variable.array_info.dimensions = num_dimensions;
+            }
+        }
+
+
+        printf("parsing record variable %d\n", num_dimensions);
+        ASTNode* record_type = parse_record_type(parser, false);
+        if (!record_type) {
+            ast_destroy_node(declarations);
+            return NULL;
+        }
+        // Set record name if not already set
+        //if (!record_type->record_type.name) {
+            record_type->record_type.name = strdup(declarations->children[0]->data.variable.name);
+        //}
+        ast_add_child(declarations->children[0], record_type);
+        
+        // Create and register type symbol
+        Symbol* type_sym = symtable_add_type(parser->ctx.symbols, 
+                                            record_type->record_type.name,
+                                            &record_type->record_type);
+        if (!type_sym) {
+            parser_error(parser, "Failed to register record type");
+            ast_destroy_node(declarations);
+            return NULL;
+        }
+
+        printf("parsing record variable completed\n");
+        return declarations;
+    }
 
     int type_pointer_level = 0;
     ASTNode* base_type = parse_type_specifier(parser, &type_pointer_level);
@@ -3714,9 +3772,20 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
     } else if (match(parser, TOK_CHARACTER)) {
         base_type = "character";
     } else {
-        //parser_error(parser, "Expected type specifier");
-        ast_destroy_node(type);
-        return NULL;
+        printf("looking for type %s in global scope\n", parser->ctx.current->value);
+        const char* type_name = parser->ctx.current->value;
+        RecordTypeData* type_sym = symtable_lookup_type(parser->ctx.symbols, type_name);
+        printf("ptr %d\n", type_sym);
+        if (type_sym) {
+            printf("found type in global scope\n");
+            verbose_print("Found user-defined type: %s\n", type_name);
+            base_type = type_name;
+            advance(parser); // Consume the type name
+        } else {
+            printf("type not found\n");
+            ast_destroy_node(type);
+            return NULL;
+        }
     }
 
     // Check for buffer overflow
@@ -3733,7 +3802,7 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
     while (match(parser, TOK_MULTIPLY) || match(parser, TOK_DEREF)) {
         *pointer_level += 1;
     }
-    
+
     if (dimensions)
         type->array_bounds.dimensions = dimensions;
 
@@ -4181,4 +4250,130 @@ static ASTNode* parse_parameter(Parser* parser) {
 
     //debug_trace_exit("parse_parameter", param);
     return param;
+}
+
+static ASTNode* parse_record_type(Parser* parser, bool is_typedef) {
+    printf("parsing record type\n");
+    ASTNode* record = ast_create_node(NODE_RECORD_TYPE);
+    if (!record) return NULL;
+
+    record->record_type.is_typedef = is_typedef;
+    record->record_type.is_nested = false; // Will be set to true by parent if nested
+    record->record_type.fields = NULL;
+    record->record_type.field_count = 0;
+    record->record_type.parent = NULL;
+
+    // For non-typedef records in var declarations, create a temporary type name
+    if (!is_typedef) {
+        static int anon_record_count = 0;
+        char temp_name[32];
+        snprintf(temp_name, sizeof(temp_name), "record_%d", anon_record_count++);
+        record->record_type.name = strdup(temp_name);
+    }
+
+    // Parse fields until 'end'
+    while (!check(parser, TOK_END)) {
+        ASTNode* field = parse_record_field(parser);
+        if (!field) {
+            ast_destroy_node(record);
+            return NULL;
+        }
+        
+        // If this field contains a nested record, set up the parent-child relationship
+        if (field->children[0] && field->children[0]->type == NODE_RECORD_TYPE) {
+            field->children[0]->record_type.parent = &record->record_type;
+            field->children[0]->record_type.is_nested = true;
+            
+            // Create name for nested record if not provided
+            //if (!field->children[0]->record_type.name) {
+            //    field->children[0]->record_type.name = strdup(field->data.variable.name);
+            //}
+        }
+        
+        ast_add_child(record, field);
+    }
+
+    consume(parser, TOK_END, "Expected 'end' after record fields");
+    return record;
+}
+
+static ASTNode* parse_record_field(Parser* parser) {
+    // Get field name
+    Token* name = consume(parser, TOK_IDENTIFIER, "Expected field name");
+    if (!name) return NULL;
+
+    if (!match(parser, TOK_COLON)) {
+        parser_error(parser, "Expected ':' after field name");
+        return NULL;
+    }
+
+    ASTNode* field = ast_create_node(NODE_RECORD_FIELD);
+    if (!field) return NULL;
+
+    field->data.variable.name = strdup(name->value);
+
+    printf("parsing nested %s\n", name->value);
+
+    // Check if field is a nested record
+    if (match(parser, TOK_RECORD)) {
+        ASTNode* nested_record = parse_record_type(parser, false);
+        if (!nested_record) {
+            ast_destroy_node(field);
+            return NULL;
+        }
+        // Set the nested record's name to be the same as the field
+        //if (nested_record->record_type.name == NULL) {
+            nested_record->record_type.name = strdup(name->value);
+        //}
+        nested_record->record_type.is_nested = true;
+        ast_add_child(field, nested_record);
+        return field;
+    }
+
+    // Not a record, try parsing as a type specifier
+    int pointer_level = 0;
+    ASTNode* type = parse_type_specifier(parser, &pointer_level);
+    if (!type) {
+        ast_destroy_node(field);
+        return NULL;
+    }
+
+    field->data.variable.type = strdup(type->data.value);
+    field->data.variable.is_pointer = pointer_level > 0;
+    field->data.variable.pointer_level = pointer_level;
+    ast_destroy_node(type);
+
+    return field;
+}
+
+static ASTNode* parse_type_declaration(Parser* parser) {
+    //consume(parser, TOK_TYPE, "Expected 'type'");
+    
+    Token* name = consume(parser, TOK_IDENTIFIER, "Expected type name");
+    if (!name) return NULL;
+
+    if (!match(parser, TOK_COLON)) {
+        parser_error(parser, "Expected ':' after type name");
+        return NULL;
+    }
+
+    if (!match(parser, TOK_RECORD)) {
+        parser_error(parser, "Expected 'record' after ':'");
+        return NULL;
+    }
+
+    ASTNode* record = parse_record_type(parser, true);
+    if (!record) return NULL;
+
+    record->record_type.name = strdup(name->value);
+    symtable_add_type(parser->ctx.symbols, name->value, &record->record_type);
+
+    ASTNode* type_decl = ast_create_node(NODE_TYPE_DECLARATION);
+    if (!type_decl) {
+        ast_destroy_node(record);
+        return NULL;
+    }
+
+    ast_add_child(type_decl, record);
+    return type_decl;
 }

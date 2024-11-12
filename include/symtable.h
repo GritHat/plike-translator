@@ -55,6 +55,7 @@ typedef struct Symbol {
     union {
         VariableInfo var;
         FunctionInfo func;
+        RecordTypeData record;
     } info;
     struct Scope* scope;
     struct Symbol* next;    // For hash table chaining
@@ -96,12 +97,15 @@ Symbol* symtable_add_function(SymbolTable* table, const char* name, const char* 
 Symbol* symtable_add_parameter(SymbolTable* table, const char* name, const char* type, const char* mode, ASTNode* node, bool needs_deref);
 void symtable_update_parameter_bounds_in_global(SymbolTable* table, const char* param_name, ArrayBoundsData* bounds);
 void symtable_add_local_to_function(SymbolTable* table, const char* function_name, Symbol* local_var);
+Symbol* symtable_add_type(SymbolTable* table, const char* name, RecordTypeData* record_type);
 
 // Symbol lookup
 Symbol* symtable_lookup(SymbolTable* table, const char* name);
 Symbol* symtable_lookup_global(SymbolTable* table, const char* name);
 Symbol* symtable_lookup_parameter(SymbolTable* table, const char* function_name, const char* param_name);
 Symbol* symtable_lookup_current_scope(SymbolTable* table, const char* name);
+RecordTypeData* symtable_lookup_type(SymbolTable* table, const char* name);
+
 
 // Utility functions
 bool symtable_is_type_compatible(const char* type1, const char* type2);

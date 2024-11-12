@@ -33,7 +33,12 @@ typedef enum {
     NODE_ARRAY_BOUNDS,
     NODE_STRING,
     NODE_TYPE,
-    NODE_PARAMETER_LIST
+    NODE_PARAMETER_LIST,
+
+    NODE_RECORD_TYPE,
+    NODE_RECORD_FIELD,
+    NODE_FIELD_ACCESS,
+    NODE_TYPE_DECLARATION, //add those to everything
 } NodeType;
 
 typedef enum {
@@ -124,6 +129,24 @@ typedef struct {
     int pointer_level;
 } ParameterData;
 
+typedef struct {
+    char* field_name;
+    char* field_type;
+    bool is_array;
+    bool is_record;
+    ArrayBoundsData* bounds;    // For array fields
+    struct RecordTypeData* record_type;  // For nested records
+} RecordField;
+
+typedef struct RecordTypeData {
+    char* name;             // Record type name
+    RecordField** fields;   // Array of field definitions
+    int field_count;
+    bool is_typedef;        // Whether this is a type definition
+    bool is_nested;         // Whether this is a nested record
+    struct RecordTypeData* parent;  // For nested records
+} RecordTypeData;
+
 typedef struct ASTNode {
     NodeType type;
     SourceLocation loc;
@@ -136,6 +159,7 @@ typedef struct ASTNode {
         ParameterData parameter;
         char* value;  // For identifiers and literals   
     } data;
+    RecordTypeData record_type;
     ArrayBoundsData array_bounds;
     struct ASTNode** children;
     int child_count;

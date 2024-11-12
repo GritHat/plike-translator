@@ -29,6 +29,7 @@ void config_init(void) {
 
 void config_set_defaults(void) {
     g_config = DEFAULT_CONFIG;
+    keywords = keywords_mixed;
 }
 
 void config_cleanup(void) {
@@ -45,8 +46,9 @@ static void print_usage(const char* program_name) {
     fprintf(stderr, "  -i, --indexing=STYLE      Set array indexing style (zero|one)\n");
     fprintf(stderr, "  -p, --params=STYLE        Set parameter style (decl|body|mixed)\n");
     fprintf(stderr, "  -o, --operators=STYLE     Set operator style (standard|dotted|mixed)\n");
-    fprintf(stderr, "  -m, --mixed-arrays        Allow mixed array access ([] and ())\n");
-    fprintf(stderr, "  -h, --help               Display this help message\n");
+    fprintf(stderr, "  -m, --mixed-arrays=STYLE  Allow mixed array access ([] and ()) (true|false)\n");
+    fprintf(stderr, "  -d, --debug=FLAGS         Set debug flags (lexer,parser,ast,symbols,codegen,all)\n");
+    fprintf(stderr, "  -h, --help                Display this help message\n");
 }
 
 static bool parse_assignment_style(const char* style) {
@@ -87,10 +89,13 @@ static bool parse_param_style(const char* style) {
 static bool parse_operator_style(const char* style) {
     if (strcmp(style, "standard") == 0) {
         g_config.operator_style = OP_STYLE_STANDARD;
+        keywords = keywords_standard;
     } else if (strcmp(style, "dotted") == 0) {
         g_config.operator_style = OP_STYLE_DOTTED;
+        keywords = keywords_dotted;
     } else if (strcmp(style, "mixed") == 0) {
         g_config.operator_style = OP_STYLE_MIXED;
+        keywords = keywords_mixed;
     } else {
         return false;
     }
@@ -104,14 +109,14 @@ static bool parse_debug_flags(const char* style) {
     debug_set_flags(debug_flags);
     
     while (token) {
-        if (strcasecmp(token, "lexer") == 0) debug_flags |= DEBUG_LEXER;
-        else if (strcasecmp(token, "parser") == 0) debug_flags |= DEBUG_PARSER;
-        else if (strcasecmp(token, "ast") == 0) debug_flags |= DEBUG_AST;
-        else if (strcasecmp(token, "symbols") == 0) debug_flags |= DEBUG_SYMBOLS;
-        else if (strcasecmp(token, "codegen") == 0) debug_flags |= DEBUG_CODEGEN;
-        else if (strcasecmp(token, "all") == 0) debug_flags |= DEBUG_ALL;
+        if (strcasecmp(token, "lexer") == 0) { debug_flags |= DEBUG_LEXER; }
+        else if (strcasecmp(token, "parser") == 0) { debug_flags |= DEBUG_PARSER; }
+        else if (strcasecmp(token, "ast") == 0) { debug_flags |= DEBUG_AST; }
+        else if (strcasecmp(token, "symbols") == 0) { debug_flags |= DEBUG_SYMBOLS; }
+        else if (strcasecmp(token, "codegen") == 0) { debug_flags |= DEBUG_CODEGEN; }
+        else if (strcasecmp(token, "all") == 0) { debug_flags |= DEBUG_ALL; }
         else {
-            fprintf(stderr, "Invalid debug flag: %s\n", token);
+            fprintf(stderr, "Invalid debug flag: (%s)\n", token);
             free(flags_copy);
             return false;
         }
@@ -119,6 +124,7 @@ static bool parse_debug_flags(const char* style) {
     }
     free(flags_copy);
     debug_set_flags(debug_flags);
+    return true;
 }
 
 bool config_parse_args(int argc, char** argv) {
@@ -127,7 +133,7 @@ bool config_parse_args(int argc, char** argv) {
         {"indexing", required_argument, 0, 'i'},
         {"params", required_argument, 0, 'p'},
         {"operators", required_argument, 0, 'o'},
-        {"mixed-arrays", no_argument, 0, 'm'},
+        {"mixed-arrays", required_argument, 0, 'm'},
         {"debug", required_argument, 0, 'd'},
         {"verbose", no_argument, 0, 'v'},
         {"help", no_argument, 0, 'h'},
@@ -137,7 +143,7 @@ bool config_parse_args(int argc, char** argv) {
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "a:i:p:o:mh", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "a:i:p:o:d:mh", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'a':
                 if (!parse_assignment_style(optarg)) {

@@ -898,6 +898,32 @@ void symtable_debug_dump_symbol(Symbol* sym, int level) {
     }
 }
 
+Symbol* symtable_add_type(SymbolTable* table, const char* name, RecordTypeData* record_type) {
+    if (!table || !name || !record_type) return NULL;
+
+    Symbol* symbol = symbol_create(name, SYMBOL_TYPE);
+    if (!symbol) return NULL;
+
+    symbol->info.record = *record_type;
+    
+    // Add to current scope
+    unsigned int h = hash(name);
+    symbol->scope = table->current;
+    symbol->next = table->current->symbols[h];
+    table->current->symbols[h] = symbol;
+    table->current->symbol_count++;
+
+    return symbol;
+}
+
+RecordTypeData* symtable_lookup_type(SymbolTable* table, const char* name) {
+    Symbol* sym = symtable_lookup(table, name);
+    if (sym && sym->kind == SYMBOL_TYPE) {
+        return &sym->info.record;
+    }
+    return NULL;
+}
+
 void symtable_debug_dump_scope(Scope* scope, int level) {
     if (!scope) return;
     

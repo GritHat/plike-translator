@@ -12,7 +12,7 @@
 #include <string.h>
 #include <getopt.h>
 
-static void print_usage(const char* program_name) {
+/*static void print_usage(const char* program_name) {
     fprintf(stderr, "Usage: %s [options] input_file [output_file]\n", program_name);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -a, --assignment=STYLE    Set assignment style (colon-equals|equals)\n");
@@ -23,9 +23,9 @@ static void print_usage(const char* program_name) {
     fprintf(stderr, "  -d, --debug=FLAGS         Set debug flags (lexer,parser,ast,symbols,codegen,all)\n");
     fprintf(stderr, "  -v, --verbose             Enable verbose output\n");
     fprintf(stderr, "  -h, --help                Display this help message\n");
-}
+}*/
 
-static DebugFlags parse_debug_flags(const char* flags_str) {
+/*static DebugFlags parse_debug_flags(const char* flags_str) {
     DebugFlags flags = 0;
     char* flags_copy = strdup(flags_str);
     char* token = strtok(flags_copy, ",");
@@ -42,7 +42,7 @@ static DebugFlags parse_debug_flags(const char* flags_str) {
     
     free(flags_copy);
     return flags;
-}
+}*/
 
 int main(int argc, char** argv) {
     // Initialize configuration with defaults
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
         {"indexing", required_argument, 0, 'i'},
         {"params", required_argument, 0, 'p'},
         {"operators", required_argument, 0, 'o'},
-        {"mixed-arrays", no_argument, 0, 'm'},
+        {"mixed-arrays", required_argument, 0, 'm'},
         {"debug", required_argument, 0, 'd'},
         {"verbose", no_argument, 0, 'v'},
         {"help", no_argument, 0, 'h'},
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
     // Parse command line arguments
     if (!config_parse_args(argc, argv)) {
-        print_usage(argv[0]);
+        //print_usage(argv[0]);
         return 1;
     }
 

@@ -85,7 +85,7 @@ var dynamic: array[n] of integer;
 
 ## What's Missing
 
-Record and Type (structure, typedef) are still missing, as well as the verbose logging. Will come in future update.
+Verbose logging as well as Bounds checking (both partially implemented but not functional and so deactivaed by default). Will come in future update.
 
 
 ## Architecture

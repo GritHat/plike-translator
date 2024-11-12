@@ -172,7 +172,13 @@ static void generate_type(CodeGenerator* gen, const char* type) {
     } else if (strcmp(type_ptr, "character") == 0) {
         fprintf(gen->output, "char");
     } else {
-        fprintf(gen->output, "%s", type_ptr);
+        RecordTypeData* type_sym = symtable_lookup_type(gen->symbols, type_ptr);
+        if (type_sym) {
+            fprintf(gen->output, "%s", type_ptr);
+        } else {
+            // If not found, just output the type name (error would have been caught during parsing)
+            fprintf(gen->output, "%s", type_ptr);
+        }
     }
 
     // For parameter declarations, we'll add a space before the parameter name
@@ -365,11 +371,201 @@ static void generate_function_declaration(CodeGenerator* gen, ASTNode* node) {
     gen->needs_return = false;
 }
 
+
+static void generate_record_type(CodeGenerator* gen, ASTNode* node) {
+    RecordTypeData* record = &node->record_type;
+    
+    if (record->is_typedef && !record->is_nested) {
+        fprintf(gen->output, "typedef ");
+    }
+    
+    fprintf(gen->output, "struct %s {\n", record->name);
+    
+    gen->indent_level++;
+
+    // Generate fields
+    for (int i = 0; i < node->child_count; i++) {
+        ASTNode* field = node->children[i];
+        write_indent(gen);
+        
+        if (field->type == NODE_RECORD_FIELD) {
+            if (field->children[0] && field->children[0]->type == NODE_RECORD_TYPE) {
+                // Mark as nested record before generating
+                field->children[0]->record_type.is_nested = true;
+                // Nested record
+                generate_record_type(gen, field->children[0]);
+                fprintf(gen->output, " %s", field->data.variable.name);
+            } else {
+                // Regular field
+                generate_type(gen, field->data.variable.type);
+                fprintf(gen->output, " %s", field->data.variable.name);
+                
+                // Handle array fields
+                if (field->data.variable.is_array && field->data.variable.array_info.bounds) {
+                    for (int j = 0; j < field->data.variable.array_info.dimensions; j++) {
+                        DimensionBounds* bound = &field->data.variable.array_info.bounds->bounds[j];
+                        fprintf(gen->output, "[");
+                        if (bound->using_range) {
+                            if (bound->end.is_constant && bound->start.is_constant) {
+                                fprintf(gen->output, "%ld", 
+                                    bound->end.constant_value - bound->start.constant_value + 
+                                    (g_config.array_indexing == ARRAY_ONE_BASED ? 1 : 0));
+                            } else {
+                                // Handle variable bounds
+                                if (bound->end.is_constant) {
+                                    fprintf(gen->output, "%ld - %s", 
+                                        bound->end.constant_value,
+                                        bound->start.variable_name);
+                                } else if (bound->start.is_constant) {
+                                    fprintf(gen->output, "%s - %ld",
+                                        bound->end.variable_name,
+                                        bound->start.constant_value);
+                                } else {
+                                    fprintf(gen->output, "%s - %s",
+                                        bound->end.variable_name,
+                                        bound->start.variable_name);
+                                }
+                                if (g_config.array_indexing == ARRAY_ONE_BASED)
+                                    fprintf(gen->output, " + 1");
+                            }
+                        } else {
+                            if (bound->start.is_constant) {
+                                fprintf(gen->output, "%ld", bound->start.constant_value);
+                            } else {
+                                fprintf(gen->output, "%s", bound->start.variable_name);
+                            }
+                        }
+                        fprintf(gen->output, "]");
+                    }
+                }
+            }
+        }
+        fprintf(gen->output, ";\n");
+    }
+
+    gen->indent_level--;
+    write_indent(gen);
+    
+    // Close the struct definition
+    if (record->is_typedef && !record->is_nested) {
+        // For top-level typedef, add the type name
+        fprintf(gen->output, "} %s;\n", record->name);
+    } else {
+        // For nested records or var declarations, just close the struct
+        fprintf(gen->output, "}");
+        // Don't add semicolon for nested records - it will be added by the parent
+        if (!record->is_nested) {
+            //fprintf(gen->output, ";\n");
+        }
+    }
+}
+
+static void generate_field_access(CodeGenerator* gen, ASTNode* node) {
+    codegen_generate(gen, node->children[0]); // Generate record expression
+    
+    // Check if arrow (->) or dot (.) should be used
+    Symbol* sym = NULL;
+    if (node->children[0]->type == NODE_IDENTIFIER) {
+        sym = symtable_lookup(gen->symbols, node->children[0]->data.value);
+    }
+    
+    fprintf(gen->output, "%s%s", 
+        (sym && sym->info.var.is_pointer) ? "->" : ".",
+        node->data.value); // Field name
+}
+
+
 static void generate_variable_declaration(CodeGenerator* gen, ASTNode* node) {
     if (!node) return;
     
     verbose_print("Generating variable declaration for %s\n", node->data.variable.name);
     write_indent(gen);
+
+    if (node->children[0] && 
+        node->children[0]->type == NODE_RECORD_TYPE) {
+        // First generate the record type definition
+        generate_record_type(gen, node->children[0]);
+        
+        // Then generate the variable declaration using the struct type
+        write_indent(gen);
+        fprintf(gen->output, " %s",
+                node->data.variable.name);
+
+        ArrayBoundsData* bounds = node->data.variable.array_info.bounds;
+        if (bounds) {
+            printf("Processing array with %d dimensions\n", bounds->dimensions);
+            
+            for (int dim = 0; dim < bounds->dimensions; dim++) {
+                fprintf(gen->output, "[");
+                
+                if (bounds->bounds[dim].using_range) {
+                    // Calculate size from range (end - start + 1)
+                    fprintf(gen->output, "(");
+                    // End bound
+                    if (bounds->bounds[dim].end.is_constant) {
+                        fprintf(gen->output, "%ld", bounds->bounds[dim].end.constant_value);
+                    } else {
+                        fprintf(gen->output, "(%s)", bounds->bounds[dim].end.variable_name);
+                    }
+                    fprintf(gen->output, " - ");
+                    // Start bound
+                    if (bounds->bounds[dim].start.is_constant) {
+                        fprintf(gen->output, "%ld", bounds->bounds[dim].start.constant_value);
+                    } else {
+                        fprintf(gen->output, "(%s)", bounds->bounds[dim].start.variable_name);
+                    }
+                    if (g_config.array_indexing == ARRAY_ONE_BASED)
+                        fprintf(gen->output, " + 1");
+                    fprintf(gen->output, ")");
+                } else {
+                    // Single size expression
+                    if (bounds->bounds[dim].start.is_constant) {
+                        fprintf(gen->output, "%ld", 
+                            bounds->bounds[dim].start.constant_value + 
+                            (g_config.array_indexing == ARRAY_ONE_BASED ? 1 : 0));
+                    } else {
+                        //if (g_config.array_indexing == ARRAY_ONE_BASED) {
+                        //    fprintf(gen->output, "(%s + 1)", bounds->bounds[dim].start.variable_name);
+                        //} else {
+                            fprintf(gen->output, "%s", bounds->bounds[dim].start.variable_name);
+                        //}
+                    }
+                }
+                fprintf(gen->output, "]");
+            }
+            fprintf(gen->output, ";\n");
+        } else if (node->data.variable.array_info.dimensions) {
+            for (int i = 0; i < node->data.variable.array_info.dimensions; ++i) {
+                fprintf(gen->output, "[]");
+            }
+            fprintf(gen->output, ";\n");
+        } else
+            fprintf(gen->output, ";\n");
+
+        //fprintf(gen->output, ";\n");
+
+        // Generate offset variables for range-based arrays in 1-based indexing
+        if (g_config.array_indexing == ARRAY_ONE_BASED && bounds) {
+            for (int dim = 0; dim < bounds->dimensions; dim++) {
+                if (bounds->bounds[dim].using_range) {
+                    write_indent(gen);
+                    fprintf(gen->output, "const int %s_offset_%d = ", 
+                            node->data.variable.name, dim);
+                    
+                    // Output start bound as offset
+                    if (bounds->bounds[dim].start.is_constant) {
+                        fprintf(gen->output, "%ld", bounds->bounds[dim].start.constant_value);
+                    } else {
+                        fprintf(gen->output, "%s", bounds->bounds[dim].start.variable_name);
+                    }
+                    if (g_config.array_indexing == ARRAY_ONE_BASED)
+                        fprintf(gen->output, " - 1");   
+                    //fprintf(gen->output, ";\n");
+                }
+            }
+        }
+        return;
+    }
 
     // Get base type
     const char* type = node->data.variable.type;
@@ -1340,6 +1536,9 @@ void codegen_generate(CodeGenerator* gen, ASTNode* node) {
             } else {
                 generate_unary(gen, node);
             }
+            break;
+        case NODE_TYPE_DECLARATION:
+            generate_record_type(gen, node->children[0]);
             break;
 
         default:

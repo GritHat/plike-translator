@@ -63,6 +63,7 @@ typedef enum {
     TOK_DEREF,        // *
     TOK_ADDR_OF,      // &
     TOK_AT,           // @
+    TOK_ARROW,        // ->
 
     // Bitwise Operators
     TOK_RSHIFT,        // >>
@@ -90,7 +91,9 @@ typedef enum {
     TOK_STRING,
     TOK_STRING_LITERAL,
     TOK_TRUE,           // true, .true.
-    TOK_FALSE           // false, .false.
+    TOK_FALSE,          // false, .false.
+    TOK_RECORD,
+    TOK_TYPE
 } TokenType;
 
 typedef struct {
@@ -117,6 +120,18 @@ typedef struct LexerStruct {
 } Lexer;
 
 typedef struct LexerStruct Lexer;
+
+// Keyword mapping
+typedef struct {
+    const char* text;
+    TokenType type;
+} Keyword;
+
+extern const Keyword keywords_standard[];
+extern const Keyword keywords_dotted[];
+extern const Keyword keywords_mixed[];
+extern const Keyword* keywords;
+
 
 // Lexer interface
 Lexer* lexer_create(const char* filename);

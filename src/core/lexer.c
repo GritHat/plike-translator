@@ -12,13 +12,7 @@
 #define MAX_IDENTIFIER_LENGTH 255
 #define MAX_NUMBER_LENGTH 64
 
-// Keyword mapping
-typedef struct {
-    const char* text;
-    TokenType type;
-} Keyword;
-
-static const Keyword keywords[] = {
+const Keyword keywords_mixed[] = {
     {"function", TOK_FUNCTION},
     {"procedure", TOK_PROCEDURE},
     {"endfunction", TOK_ENDFUNCTION},
@@ -53,12 +47,20 @@ static const Keyword keywords[] = {
     {"character", TOK_CHARACTER},
     {"array", TOK_ARRAY},
     {"of", TOK_OF},
+    {"type", TOK_TYPE},
+    {"record", TOK_RECORD},
     {"and", TOK_AND},
     {".and.", TOK_AND},
     {"or", TOK_OR},
     {".or.", TOK_OR},
     {"not", TOK_NOT},
     {".not.", TOK_NOT},
+    {"eq", TOK_EQ},
+    {".eq.", TOK_EQ},
+    {"equal", TOK_EQ},
+    {".equal.", TOK_EQ},
+    {"equals", TOK_EQ},
+    {".equals.", TOK_EQ},
     {"ne", TOK_NE},
     {".ne.", TOK_NE},
     {"notequal", TOK_NE},
@@ -73,6 +75,112 @@ static const Keyword keywords[] = {
     {".mod.", TOK_MOD},
     {NULL, TOK_EOF}
 };
+
+const Keyword keywords_standard[] = {
+    {"function", TOK_FUNCTION},
+    {"procedure", TOK_PROCEDURE},
+    {"endfunction", TOK_ENDFUNCTION},
+    {"endprocedure", TOK_ENDPROCEDURE},
+    {"var", TOK_VAR},
+    {"begin", TOK_BEGIN},
+    {"end", TOK_END},
+    {"if", TOK_IF},
+    {"then", TOK_THEN},
+    {"else", TOK_ELSE},
+    {"elseif", TOK_ELSEIF},
+    {"endif", TOK_ENDIF},
+    {"while", TOK_WHILE},
+    {"do", TOK_DO},
+    {"endwhile", TOK_ENDWHILE},
+    {"for", TOK_FOR},
+    {"to", TOK_TO},
+    {"step", TOK_STEP},
+    {"endfor", TOK_ENDFOR},
+    {"return", TOK_RETURN},
+    {"repeat", TOK_REPEAT},
+    {"until", TOK_UNTIL},
+    {"in", TOK_IN},
+    {"out", TOK_OUT},
+    {"inout", TOK_INOUT},
+    {"in/out", TOK_INOUT},
+    {"print", TOK_PRINT},
+    {"read", TOK_READ},
+    {"integer", TOK_INTEGER},
+    {"real", TOK_REAL},
+    {"logical", TOK_LOGICAL},
+    {"character", TOK_CHARACTER},
+    {"array", TOK_ARRAY},
+    {"of", TOK_OF},
+    {"type", TOK_TYPE},
+    {"record", TOK_RECORD},
+    {"and", TOK_AND},
+    {"or", TOK_OR},
+    {"not", TOK_NOT},
+    {"eq", TOK_EQ},
+    {"equal", TOK_EQ},
+    {"equals", TOK_EQ},
+    {"ne", TOK_NE},
+    {"notequal", TOK_NE},
+    {"notequals", TOK_NE},
+    {"true", TOK_TRUE},
+    {"false", TOK_FALSE},
+    {"mod", TOK_MOD},
+    {NULL, TOK_EOF}
+};
+
+const Keyword keywords_dotted[] = {
+    {"function", TOK_FUNCTION},
+    {"procedure", TOK_PROCEDURE},
+    {"endfunction", TOK_ENDFUNCTION},
+    {"endprocedure", TOK_ENDPROCEDURE},
+    {"var", TOK_VAR},
+    {"begin", TOK_BEGIN},
+    {"end", TOK_END},
+    {"if", TOK_IF},
+    {"then", TOK_THEN},
+    {"else", TOK_ELSE},
+    {"elseif", TOK_ELSEIF},
+    {"endif", TOK_ENDIF},
+    {"while", TOK_WHILE},
+    {"do", TOK_DO},
+    {"endwhile", TOK_ENDWHILE},
+    {"for", TOK_FOR},
+    {"to", TOK_TO},
+    {"step", TOK_STEP},
+    {"endfor", TOK_ENDFOR},
+    {"return", TOK_RETURN},
+    {"repeat", TOK_REPEAT},
+    {"until", TOK_UNTIL},
+    {"in", TOK_IN},
+    {"out", TOK_OUT},
+    {"inout", TOK_INOUT},
+    {"in/out", TOK_INOUT},
+    {"print", TOK_PRINT},
+    {"read", TOK_READ},
+    {"integer", TOK_INTEGER},
+    {"real", TOK_REAL},
+    {"logical", TOK_LOGICAL},
+    {"character", TOK_CHARACTER},
+    {"array", TOK_ARRAY},
+    {"of", TOK_OF},
+    {"type", TOK_TYPE},
+    {"record", TOK_RECORD},
+    {".and.", TOK_AND},
+    {".or.", TOK_OR},
+    {".not.", TOK_NOT},
+    {".eq.", TOK_EQ},
+    {".equal.", TOK_EQ},
+    {".equals.", TOK_EQ},
+    {".ne.", TOK_NE},
+    {".notequal.", TOK_NE},
+    {".notequals.", TOK_NE},
+    {".true.", TOK_TRUE},
+    {".false.", TOK_FALSE},
+    {".mod.", TOK_MOD},
+    {NULL, TOK_EOF}
+};
+
+const Keyword* keywords = keywords_mixed;
 
 // Helper function declarations
 static bool is_at_end(Lexer* lexer);
@@ -381,14 +489,14 @@ static TokenType identifier_type(Lexer* lexer) {
     strncpy(identifier, &lexer->source[lexer->start], len);
     identifier[len] = '\0';
 
-    if (strcasecmp(identifier, "eq") == 0 ||
+    /*if (strcasecmp(identifier, "eq") == 0 ||
         strcasecmp(identifier, ".eq.") == 0 ||
         strcasecmp(identifier, "equal") == 0 ||
         strcasecmp(identifier, ".equal.") == 0 ||
         strcasecmp(identifier, "equals") == 0 ||
         strcasecmp(identifier, ".equals.") == 0) {
         return TOK_EQ;
-    }
+    }*/
 
     verbose_print("No keyword match, treating as identifier: %s\n", identifier);
 
@@ -746,7 +854,8 @@ Token* lexer_next_token(Lexer* lexer) {
             token = make_token(lexer, TOK_DOT);
             goto scanned;
         case '+': token = make_token(lexer, TOK_PLUS); goto scanned;
-        case '-': token = make_token(lexer, TOK_MINUS); goto scanned;
+        case '-': if (match(lexer, '>')) { token = make_token(lexer, TOK_ARROW); goto scanned; }
+            token = make_token(lexer, TOK_MINUS); goto scanned;
         //case '*': return make_token(lexer, TOK_MULTIPLY);
         case '/': token = make_token(lexer, TOK_DIVIDE); goto scanned;
         case '<':
