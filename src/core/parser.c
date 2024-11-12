@@ -50,7 +50,7 @@ static int parse_array_dimension(Parser* parser);
 static ASTNode* parse_record_type(Parser* parser, bool is_typedef);
 static ASTNode* parse_record_field(Parser* parser);
 static ASTNode* parse_type_declaration(Parser* parser);
-static ASTNode* parse_field_access(Parser* parser, ASTNode* record);
+static ASTNode* parse_field_access(Parser* parser, ASTNode* record, Symbol* record_sym);
 
 static Token* consume_token_with_trace(Parser* parser, const char* context) {
     verbose_print("\n=== CONSUMING TOKEN AT %s ===\n", context);
@@ -172,6 +172,7 @@ Parser* parser_create(Lexer* lexer) {
     verbose_print("Creating symbol table...\n");
     parser->ctx.symbols = symtable_create();
     parser->ctx.current_function = NULL;
+    parser->ctx.current_record = NULL;
     parser->ctx.in_loop = false;
     parser->ctx.error_count = 0;
     parser->had_error = false;
@@ -574,7 +575,6 @@ static ASTNode* parse_declaration(Parser* parser) {
         verbose_print("Parsing type declaration\n");
         return parse_type_declaration(parser);
     }
-
 
     parser_error(parser, "Expected declaration");
     return NULL;
@@ -994,6 +994,7 @@ static ASTNode* parse_procedure_declaration(Parser* parser) {
     parser->ctx.is_function = false;
 
     debug_parser_rule_end(parser, "parse_procedure_declaration", proc);
+    printf("parsed procedure\n");
     return proc;
 }
 
@@ -1786,21 +1787,24 @@ static ASTNode* parse_variable_declaration(Parser* parser) {
                 var_node->data.variable.array_info.dimensions = num_dimensions;
             }
         }
+        parser->ctx.current_record = strdup(declarations->children[0]->data.variable.name);
         ASTNode* record_type = parse_record_type(parser, false);
+        free(parser->ctx.current_record);
+        parser->ctx.current_record = NULL;
         if (!record_type) {
             ast_destroy_node(declarations);
             return NULL;
         }
         // Set record name if not already set
         //if (!record_type->record_type.name) {
-            record_type->record_type.name = strdup(declarations->children[0]->data.variable.name);
+        record_type->record_type.name = strdup(declarations->children[0]->data.variable.name);
         //}
         ast_add_child(declarations->children[0], record_type);
         
         // Create and register type symbol
         Symbol* type_sym = symtable_add_type(parser->ctx.symbols, 
                                             record_type->record_type.name,
-                                            &record_type->record_type);
+                                            record_type);
         if (!type_sym) {
             parser_error(parser, "Failed to register record type");
             ast_destroy_node(declarations);
@@ -3494,7 +3498,7 @@ static ASTNode* parse_primary(Parser* parser) {
 
     if (check(parser, TOK_IDENTIFIER)) {
         Token* name = consume(parser, TOK_IDENTIFIER, "Expected identifier");
-        ASTNode* node;
+        ASTNode* node = NULL;
         SourceLocation identifier_loc = token_clone_location(name);
 
         // Check if it's an array access with either () or []
@@ -3534,10 +3538,50 @@ static ASTNode* parse_primary(Parser* parser) {
                 deref->data.unary_op.op = TOK_DEREF;
                 deref->data.unary_op.deref_count = 1;
                 ast_add_child(deref, node);
-                return deref;
+                node = deref;  // so we can return it later if problems debug this <--
+                //return deref; // this was working but we need to return later to allow field access
+            }
+            if (check(parser, TOK_DOT) || check(parser, TOK_ARROW)) {
+                Symbol* record_sym = NULL;
+                RecordTypeData* record_type = NULL;
+
+                // Get the type of the record expression
+                if (node->type == NODE_IDENTIFIER) {
+                    record_sym = symtable_lookup(parser->ctx.symbols, node->data.value);
+                } else if (node->type == NODE_VARIABLE) {
+                    record_sym = symtable_lookup(parser->ctx.symbols, node->data.variable.name);
+                }
+
+                Symbol* type_sym = NULL;
+                if (record_sym) {
+                    // If it's a variable, get its type
+                    if (record_sym->kind == SYMBOL_VARIABLE || record_sym->kind == SYMBOL_PARAMETER) {
+                        // Look up the type
+                        type_sym = symtable_lookup(parser->ctx.symbols, record_sym->info.var.type);
+                        if (type_sym && type_sym->kind == SYMBOL_TYPE) {
+                            record_type = &type_sym->info.record;
+                        }
+                    //} else if (record_sym->kind == SYMBOL_TYPE) {
+                    //    record_type = &record_sym->info.record;
+                    }
+                }
+                while (check(parser, TOK_DOT) || check(parser, TOK_ARROW)) {
+                    TokenType op = match(parser, TOK_DOT) ? TOK_DOT : match(parser, TOK_ARROW) ? TOK_ARROW : TOK_DOT;
+                    printf("found access\n");
+                    ASTNode* field_access = parse_field_access(parser, node, type_sym);
+                    char* new_name = malloc(strlen(field_access->data.variable.name) + strlen(op == TOK_DOT ? "." : "->"));
+                    sprintf(new_name, "%s%s", op == TOK_DOT ? "." : "->", field_access->data.variable.name);
+                    free(field_access->data.variable.name);
+                    field_access->data.variable.name = strdup(new_name);
+                    free(new_name);
+                    printf("found access after\n");
+                    if (!field_access) return NULL;
+                    node = field_access;
+                }
+
+                printf("correctly returning\n");
             }
         }
-
         return node;
     }
     if (check(parser, TOK_STRING_LITERAL)) {
@@ -3562,6 +3606,88 @@ static ASTNode* parse_primary(Parser* parser) {
 
     parser_error(parser, "Expected expression");
     return NULL;
+}
+
+static RecordTypeData* recursive_find_field(RecordTypeData* record_type, const char* name) {
+    RecordTypeData* field = NULL;
+    if (strcmp(record_type->name, name) == 0) {
+        return record_type;
+    } 
+    for (int i = 0; i < record_type->field_count; ++i) {
+        field = recursive_find_field(record_type->fields[i]->record_type, name);
+        if (field)
+            break;
+    }
+
+    return field;
+}
+
+static ASTNode* parse_field_access(Parser* parser, ASTNode* record, Symbol* record_sym) {
+    // record is the left-hand side before the '.'
+    verbose_print("Parsing field access\n");
+    
+    Token* field = consume(parser, TOK_IDENTIFIER, "Expected field name after '.'");
+    if (!field) return NULL;
+
+    ASTNode* access = ast_create_node(NODE_FIELD_ACCESS);
+    if (!access) return NULL;
+    
+    printf("found identifier\n");
+
+    ast_set_location(access, parser->ctx.current->loc);
+    access->data.value = strdup(field->value);  // Store field name
+    ast_add_child(access, record);  // Add record expression as child
+
+    /*// Validate that record is actually a record type
+    Symbol* record_sym = NULL;
+    RecordTypeData* record_type = NULL;
+
+    // Get the type of the record expression
+    if (record->type == NODE_IDENTIFIER) {
+        record_sym = symtable_lookup(parser->ctx.symbols, record->data.value);
+    } else if (record->type == NODE_VARIABLE) {
+        record_sym = symtable_lookup(parser->ctx.symbols, record->data.variable.name);
+    }
+
+    Symbol* type_sym = NULL;
+    if (record_sym) {
+        // If it's a variable, get its type
+        if (record_sym->kind == SYMBOL_VARIABLE || record_sym->kind == SYMBOL_PARAMETER) {
+            // Look up the type
+            type_sym = symtable_lookup(parser->ctx.symbols, record_sym->info.var.type);
+            if (type_sym && type_sym->kind == SYMBOL_TYPE) {
+                record_type = &type_sym->info.record;
+            }
+        //} else if (record_sym->kind == SYMBOL_TYPE) {
+        //    record_type = &record_sym->info.record;
+        }
+    }*/
+
+    RecordTypeData* record_type = NULL;
+    if (record_sym)
+        record_type = &record_sym->info.record;    
+
+    // Validate that the field exists in the record
+    if (record_type) {
+        printf("found record %s with %d\n", record_sym->info.record.name, record_type->field_count);
+        bool field_found = false;
+        if (recursive_find_field(record_type, field->value))
+            field_found = true;
+        if (!field_found) {
+            char* error_message = malloc(strlen("Field '%s' does not exist in record type") + strlen(field->value));
+            sprintf(error_message, "Field '%s' does not exist in record type", field->value);
+            parser_error(parser, error_message);
+            free(error_message);
+            ast_destroy_node(access);
+            return NULL;
+        }
+    } else {
+        parser_error(parser, "Left side of '.' is not a record type");
+        ast_destroy_node(access);
+        return NULL;
+    }
+
+    return access;
 }
 
 static ASTNode* parse_array_access(Parser* parser, ASTNode* array) {
@@ -3781,7 +3907,13 @@ static ASTNode* parse_type_specifier(Parser* parser, int* pointer_level) {
     } else {
         const char* type_name = parser->ctx.current->value;
         RecordTypeData* type_sym = symtable_lookup_type(parser->ctx.symbols, type_name);
-        if (type_sym) {
+        if (parser->ctx.current_record && (strcmp(type_name, parser->ctx.current_record) == 0)) {
+            verbose_print("Found user-defined type: %s\n", type_name);
+            char * new_type_name = malloc(strlen(type_name) + strlen("struct "));
+            sprintf(new_type_name, "struct %s", type_name);
+            base_type = new_type_name;
+            advance(parser); // Consume the type name
+        } else if (type_sym) {
             verbose_print("Found user-defined type: %s\n", type_name);
             base_type = type_name;
             advance(parser); // Consume the type name
@@ -3862,8 +3994,8 @@ static ASTNode* parse_parameter(Parser* parser) {
         
     // Count consecutive pointer operators
     while (check(parser, TOK_MULTIPLY) || check(parser, TOK_DEREF)) {
-        verbose_print("Found pointer operator level %d before parameter name\n", 
-                    pointer_level + 1);
+        verbose_print("Found pointer operator level %d before parameter name\n", pointer_level + 1);
+        printf("Found pointer operator level %d before parameter name\n", pointer_level + 1);
         pointer_level++;
         advance(parser);  // Consume the * token
     }
@@ -4300,6 +4432,8 @@ static ASTNode* parse_record_type(Parser* parser, bool is_typedef) {
 }
 
 static ASTNode* parse_record_field(Parser* parser) {
+    // parse name pointers here
+    
     // Get field name
     Token* name = consume(parser, TOK_IDENTIFIER, "Expected field name");
     if (!name) return NULL;
@@ -4360,12 +4494,17 @@ static ASTNode* parse_type_declaration(Parser* parser) {
         parser_error(parser, "Expected 'record' after ':'");
         return NULL;
     }
-
+    parser->ctx.current_record = strdup(name->value);
     ASTNode* record = parse_record_type(parser, true);
+    free(parser->ctx.current_record);
+    parser->ctx.current_record = NULL;
     if (!record) return NULL;
 
     record->record_type.name = strdup(name->value);
-    symtable_add_type(parser->ctx.symbols, name->value, &record->record_type);
+    //symtable_add_type(parser->ctx.symbols, name->value, &record->record_type);
+    printf("adding type\n");
+    symtable_add_type(parser->ctx.symbols, name->value, record);
+    printf("adding type done\n");
 
     ASTNode* type_decl = ast_create_node(NODE_TYPE_DECLARATION);
     if (!type_decl) {

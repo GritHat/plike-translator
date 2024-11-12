@@ -97,7 +97,7 @@ Symbol* symtable_add_function(SymbolTable* table, const char* name, const char* 
 Symbol* symtable_add_parameter(SymbolTable* table, const char* name, const char* type, const char* mode, ASTNode* node, bool needs_deref);
 void symtable_update_parameter_bounds_in_global(SymbolTable* table, const char* param_name, ArrayBoundsData* bounds);
 void symtable_add_local_to_function(SymbolTable* table, const char* function_name, Symbol* local_var);
-Symbol* symtable_add_type(SymbolTable* table, const char* name, RecordTypeData* record_type);
+Symbol* symtable_add_type(SymbolTable* table, const char* name, ASTNode* record);
 
 // Symbol lookup
 Symbol* symtable_lookup(SymbolTable* table, const char* name);

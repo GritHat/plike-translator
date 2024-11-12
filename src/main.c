@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     // Initialize debug system with default flags
     debug_init();
 
-    debug_set_flags(DEBUG_ALL);
+    debug_set_flags(DEBUG_AST);
 
     // Parse command line arguments
     if (!config_parse_args(argc, argv)) {
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    verbose_print("Generating code...\n");
+    printf("Generating code...\n");
     // Generate code
     codegen_generate(codegen, ast);
 

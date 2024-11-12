@@ -898,13 +898,41 @@ void symtable_debug_dump_symbol(Symbol* sym, int level) {
     }
 }
 
-Symbol* symtable_add_type(SymbolTable* table, const char* name, RecordTypeData* record_type) {
-    if (!table || !name || !record_type) return NULL;
+void record_add_field(ASTNode* child, RecordTypeData* record_data) {
+    size_t new_capacity = (record_data->field_count + 1) * 2;
+    RecordField** new_fields = (RecordField**)realloc(record_data->fields, new_capacity * sizeof(RecordField*));
+    if (!new_fields) {
+        error_report(ERROR_INTERNAL, SEVERITY_ERROR, child->loc,
+                    "Failed to allocate memory for record fields");
+        return;
+    }
+    record_data->fields = new_fields;
 
+    record_data->fields[record_data->field_count] = malloc(sizeof(RecordField));
+    record_data->fields[record_data->field_count]->record_type = malloc(sizeof(RecordTypeData));
+    *record_data->fields[record_data->field_count]->record_type = child->record_type;
+    if (child->data.value)
+        record_data->fields[record_data->field_count]->record_type->name = child->data.value;
+    printf("added %s\n", child->data.value);
+    record_data->field_count++;
+}
+
+void recursive_add_field(ASTNode* parent, RecordTypeData* record_data) {
+    for (int i = 0; i < parent->child_count; ++i) {
+        record_add_field(parent->children[i], record_data);
+        recursive_add_field(parent->children[i], record_data->fields[i]->record_type);
+    }
+}
+
+Symbol* symtable_add_type(SymbolTable* table, const char* name, ASTNode* record) {
+    if (!table || !name || !record) return NULL;
+
+    RecordTypeData* record_type = &record->record_type;
     Symbol* symbol = symbol_create(name, SYMBOL_TYPE);
     if (!symbol) return NULL;
 
     symbol->info.record = *record_type;
+    recursive_add_field(record, &symbol->info.record);
     
     // Add to current scope
     unsigned int h = hash(name);

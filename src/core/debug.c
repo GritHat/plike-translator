@@ -941,6 +941,7 @@ void generate_symbol_table_dot(FILE* dot, SymbolTable* table) {
 
 static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
     if (!node) return;
+    printf("generating dot %d\n", node->type);
     
     int current_id = ++ast_node_id;
     
@@ -963,8 +964,8 @@ static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
         case NODE_VARIABLE:
         case NODE_VAR_DECL:
         case NODE_ARRAY_DECL:
-            if (node->type == NODE_ARRAY_DECL)
-            fprintf(dot, "\\n%s: %s", node->data.variable.name, 
+            //if (node->type == NODE_ARRAY_DECL)
+                fprintf(dot, "\\n%s: %s", node->data.variable.name, 
                     node->data.variable.type ? node->data.variable.type : "<pending>");
             if (node->data.variable.is_array) {
                 fprintf(dot, "\\nDimensions: %d", node->data.variable.array_info.dimensions);
@@ -975,11 +976,20 @@ static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
             break;
             
         case NODE_PARAMETER:
-            fprintf(dot, "\\n%s: %s", node->data.parameter.name,
-                    node->data.parameter.type ? node->data.parameter.type : "<pending>");
+            printf("generating param dot\n");
+
+            char* pointer = "";
+            if (node->data.parameter.is_pointer) {
+                pointer = malloc(node->data.parameter.pointer_level + 1);
+                memset(pointer, '*', node->data.parameter.pointer_level);
+                pointer[node->data.parameter.pointer_level] = '\0';
+            }
+            fprintf(dot, "\\n%s: %s%s", node->data.parameter.name,
+                    node->data.parameter.type ? node->data.parameter.type : "<pending>", pointer);
             fprintf(dot, "\\nMode: %s", 
                     node->data.parameter.mode == PARAM_MODE_IN ? "in" :
                     node->data.parameter.mode == PARAM_MODE_OUT ? "out" : "inout");
+                
             break;
             
         case NODE_BINARY_OP:
@@ -1048,19 +1058,27 @@ static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
         }
     }
 
+
     if ((node->type == NODE_FUNCTION || node->type == NODE_PROCEDURE) && node->data.function.params) {
         for (int i = 0; i < node->data.function.params->child_count; i++) {
             generate_dot_node(dot, node->data.function.params->children[i], current_id);
         }
     }
     
+            printf("generating param dot done\n");
+
+
     for (int i = 0; i < node->child_count; i++) {
         generate_dot_node(dot, node->children[i], current_id);
     }
+
+            printf("generating param dot done\n");
+
     
-    if (node  && node->type != NODE_ARRAY_DECL && node->data.function.body)
+    if (node  && node->type != NODE_ARRAY_DECL && node->type != NODE_PARAMETER && node->data.function.body)
         generate_dot_node(dot, node->data.function.body, current_id);
-    
+
+    printf("GENERATED\n");
 }
 
 

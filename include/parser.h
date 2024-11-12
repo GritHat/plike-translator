@@ -13,6 +13,7 @@ typedef struct {
     Token* peek;            // Look-ahead token
     Lexer* lexer;          // Lexer instance
     SymbolTable* symbols;   // Symbol table
+    char* current_record;
     char* current_function; // Name of function being parsed
     bool is_function;
     bool in_loop;          // Track if we're inside a loop

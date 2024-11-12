@@ -404,6 +404,9 @@ static void generate_record_type(CodeGenerator* gen, ASTNode* node) {
             } else {
                 // Regular field
                 generate_type(gen, field->data.variable.type);
+                for (int i = 0; i < field->data.variable.pointer_level; ++i) {
+                    fprintf(gen->output, "*");
+                }
                 fprintf(gen->output, " %s", field->data.variable.name);
                 
                 // Handle array fields
@@ -475,20 +478,19 @@ static void generate_field_access(CodeGenerator* gen, ASTNode* node) {
         sym = symtable_lookup(gen->symbols, node->children[0]->data.value);
     }
     
-    fprintf(gen->output, "%s%s", 
-        (sym && sym->info.var.is_pointer) ? "->" : ".",
-        node->data.value); // Field name
+    fprintf(gen->output, "%s", node->data.value);
 }
 
 
 static void generate_variable_declaration(CodeGenerator* gen, ASTNode* node) {
     if (!node) return;
-    
+
     verbose_print("Generating variable declaration for %s\n", node->data.variable.name);
     write_indent(gen);
 
-    if (node->children[0] && 
+    if (node->child_count && node->children[0] && 
         node->children[0]->type == NODE_RECORD_TYPE) {
+
         // First generate the record type definition
         generate_record_type(gen, node->children[0]);
         
@@ -571,6 +573,7 @@ static void generate_variable_declaration(CodeGenerator* gen, ASTNode* node) {
         return;
     }
 
+
     // Get base type
     const char* type = node->data.variable.type;
     const char* base_type = type;
@@ -596,7 +599,6 @@ static void generate_variable_declaration(CodeGenerator* gen, ASTNode* node) {
             fprintf(gen->output, "*");
         }
     }
-
     fprintf(gen->output, " %s", node->data.variable.name);
 
     // Handle array dimensions
@@ -1551,6 +1553,9 @@ void codegen_generate(CodeGenerator* gen, ASTNode* node) {
             break;
         case NODE_STRING:
             generate_string(gen, node);
+            break;
+        case NODE_FIELD_ACCESS:
+            generate_field_access(gen, node);
             break;
         default:
             error_report(ERROR_INTERNAL, SEVERITY_ERROR,
