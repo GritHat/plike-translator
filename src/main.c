@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     // Initialize debug system with default flags
     debug_init();
 
-    debug_set_flags(DEBUG_AST);
+    debug_set_flags(DEBUG_ALL);
 
     // Parse command line arguments
     if (!config_parse_args(argc, argv)) {
