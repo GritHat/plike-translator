@@ -913,7 +913,6 @@ void record_add_field(ASTNode* child, RecordTypeData* record_data) {
     *record_data->fields[record_data->field_count]->record_type = child->record_type;
     if (child->data.value)
         record_data->fields[record_data->field_count]->record_type->name = child->data.value;
-    printf("added %s\n", child->data.value);
     record_data->field_count++;
 }
 

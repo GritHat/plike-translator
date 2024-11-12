@@ -994,7 +994,6 @@ static ASTNode* parse_procedure_declaration(Parser* parser) {
     parser->ctx.is_function = false;
 
     debug_parser_rule_end(parser, "parse_procedure_declaration", proc);
-    printf("parsed procedure\n");
     return proc;
 }
 
@@ -3567,19 +3566,15 @@ static ASTNode* parse_primary(Parser* parser) {
                 }
                 while (check(parser, TOK_DOT) || check(parser, TOK_ARROW)) {
                     TokenType op = match(parser, TOK_DOT) ? TOK_DOT : match(parser, TOK_ARROW) ? TOK_ARROW : TOK_DOT;
-                    printf("found access\n");
                     ASTNode* field_access = parse_field_access(parser, node, type_sym);
                     char* new_name = malloc(strlen(field_access->data.variable.name) + strlen(op == TOK_DOT ? "." : "->"));
                     sprintf(new_name, "%s%s", op == TOK_DOT ? "." : "->", field_access->data.variable.name);
                     free(field_access->data.variable.name);
                     field_access->data.variable.name = strdup(new_name);
                     free(new_name);
-                    printf("found access after\n");
                     if (!field_access) return NULL;
                     node = field_access;
                 }
-
-                printf("correctly returning\n");
             }
         }
         return node;
@@ -3632,8 +3627,6 @@ static ASTNode* parse_field_access(Parser* parser, ASTNode* record, Symbol* reco
     ASTNode* access = ast_create_node(NODE_FIELD_ACCESS);
     if (!access) return NULL;
     
-    printf("found identifier\n");
-
     ast_set_location(access, parser->ctx.current->loc);
     access->data.value = strdup(field->value);  // Store field name
     ast_add_child(access, record);  // Add record expression as child
@@ -3669,7 +3662,6 @@ static ASTNode* parse_field_access(Parser* parser, ASTNode* record, Symbol* reco
 
     // Validate that the field exists in the record
     if (record_type) {
-        printf("found record %s with %d\n", record_sym->info.record.name, record_type->field_count);
         bool field_found = false;
         if (recursive_find_field(record_type, field->value))
             field_found = true;
@@ -3995,7 +3987,6 @@ static ASTNode* parse_parameter(Parser* parser) {
     // Count consecutive pointer operators
     while (check(parser, TOK_MULTIPLY) || check(parser, TOK_DEREF)) {
         verbose_print("Found pointer operator level %d before parameter name\n", pointer_level + 1);
-        printf("Found pointer operator level %d before parameter name\n", pointer_level + 1);
         pointer_level++;
         advance(parser);  // Consume the * token
     }
@@ -4502,9 +4493,7 @@ static ASTNode* parse_type_declaration(Parser* parser) {
 
     record->record_type.name = strdup(name->value);
     //symtable_add_type(parser->ctx.symbols, name->value, &record->record_type);
-    printf("adding type\n");
     symtable_add_type(parser->ctx.symbols, name->value, record);
-    printf("adding type done\n");
 
     ASTNode* type_decl = ast_create_node(NODE_TYPE_DECLARATION);
     if (!type_decl) {

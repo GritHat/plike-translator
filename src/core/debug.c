@@ -941,7 +941,6 @@ void generate_symbol_table_dot(FILE* dot, SymbolTable* table) {
 
 static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
     if (!node) return;
-    printf("generating dot %d\n", node->type);
     
     int current_id = ++ast_node_id;
     
@@ -976,8 +975,6 @@ static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
             break;
             
         case NODE_PARAMETER:
-            printf("generating param dot\n");
-
             char* pointer = "";
             if (node->data.parameter.is_pointer) {
                 pointer = malloc(node->data.parameter.pointer_level + 1);
@@ -1064,21 +1061,13 @@ static void generate_dot_node(FILE* dot, ASTNode* node, int parent_id) {
             generate_dot_node(dot, node->data.function.params->children[i], current_id);
         }
     }
-    
-            printf("generating param dot done\n");
-
-
     for (int i = 0; i < node->child_count; i++) {
         generate_dot_node(dot, node->children[i], current_id);
     }
-
-            printf("generating param dot done\n");
-
     
     if (node  && node->type != NODE_ARRAY_DECL && node->type != NODE_PARAMETER && node->data.function.body)
         generate_dot_node(dot, node->data.function.body, current_id);
 
-    printf("GENERATED\n");
 }
 
 

@@ -607,7 +607,6 @@ static Token* scan_string(Lexer* lexer) {
     
     // Skip the closing quote
     advance(lexer);
-    printf("token created succesfully (%s)\n", token->value);
     return token;
 }
 
@@ -633,7 +632,6 @@ Token* lexer_next_token(Lexer* lexer) {
     char c = advance(lexer);
     //printf("next c %c\n", c);
     if (c == '"') {
-        printf("scanning string\n");
         return scan_string(lexer);
     }
 
